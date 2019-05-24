@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}создать пользователя{% endblock %}
+
+{% block content %}
+
+    {{ form_start(form) }}
+      <div class="form-group">
+        {{ form_label(form.Name) }}
+        {{ form_widget(form.Name, { 'attr':{ 'class':'form-control' }}) }}
+      </div>
+      {{ form_widget(form.Create, { 'attr':{ 'class':'btn btn-primary' }}) }}
+    {{ form_end(form) }}
+    
+{% endblock %}

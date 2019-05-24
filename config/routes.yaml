@@ -1,0 +1,9 @@
+index:
+    path: /
+    controller: App\Controller\MainController::index
+new:
+    path: /new
+    controller: App\Controller\MainController::new
+create:
+    path: /create
+    controller: App\Controller\MainController::create
