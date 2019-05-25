@@ -13,31 +13,37 @@
     <table class="table">
       <thead>
         <tr>
-          <th scope="col">#</th>
-          <th scope="col">Имя</th>
-          <th scope="col">Фамилия</th>
-          <th scope="col">Username</th>
+          <th scope="col">Thumbnail</th>
+          <th scope="col">Title</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <th scope="row">1</th>
-          <td>Mark</td>
-          <td>Otto</td>
-          <td>@mdo</td>
-        </tr>
-        <tr>
-          <th scope="row">2</th>
-          <td>Jacob</td>
-          <td>Thornton</td>
-          <td>@fat</td>
-        </tr>
-        <tr>
-          <th scope="row">3</th>
-          <td>Larry</td>
-          <td>the Bird</td>
-          <td>@twitter</td>
-        </tr>
-      </tbody>
+          <tbody>
+      {% for program in programs if program.level  == 0 %}
+            <tr>
+              <td><img src="{{ asset('images/'~ program.images) }}" width="100px"/></td>
+              <td><a href="{{ path(program.link, { 'slug': program.id }) }}">{{ program.title }}</a></td>
+            </tr>
+            
+                        {% for prog in programs if prog.level == 1 %}
+                            {% if prog.parentId == program.id %}
+                            <tr class="ml-4">
+                                <td class="text-center"><img src="{{ asset('images/'~ prog.images) }}" width="100px"/></td>
+                                <td class="text-center"><a href="{{ path(prog.link, { 'slug': prog.id }) }}">{{ prog.title }}</a></td>
+                            </tr>
+                            
+                                {% for pro in programs if pro.level == 2 %}
+                                {% if pro.parentId == prog.id %}
+                                <tr class="ml-4">
+                                    <td class="text-right"><img src="{{ asset('images/'~ pro.images) }}" width="100px"/></td>
+                                    <td class="text-right"><a href="{{ path(pro.link, { 'slug': pro.id }) }}">{{ pro.title }}</a></td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            
+                            {% endif %}
+                        {% endfor %}
+           
+      {% endfor %}
+          </tbody>
     </table>
 {% endblock %}

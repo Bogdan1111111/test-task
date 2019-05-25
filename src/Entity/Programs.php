@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\ProgramsRepository")
@@ -28,6 +29,9 @@ class Programs
 
     /**
      * @ORM\Column(type="string", length=255)
+     *
+     * @Assert\NotBlank(message="Please, upload the program thumbnail as a JPEG file less 1 MB.")
+     * @Assert\File(mimeTypes={ "image/jpeg" })
      */
     private $images;
 

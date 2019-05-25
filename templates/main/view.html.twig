@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}просмотр программы "{{ program.title }}"{% endblock %}
+
+{% block content %}
+
+<h1>{{ program.title }}</h1>
+<img src="{{ asset('images/'~ program.images) }}" class="img-fluid"/>
+<p>{{ program.description }}</p>
+<h5>Организаторы:</h5>
+<ul class="row">
+    {% for name in organizers %}
+        <li class="mx-3">{{ name }}</li>
+    {% endfor %}
+</ul>
+
+{% endblock %}

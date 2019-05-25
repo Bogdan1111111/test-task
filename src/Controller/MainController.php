@@ -9,13 +9,16 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Users;
 use App\Entity\Programs;
-use Doctrine\ORM\EntityManagerInterface;
 
 class MainController extends AbstractController
 {
+    
     /**
      * @Route("/", name="main")
      */
@@ -23,8 +26,23 @@ class MainController extends AbstractController
     {
         $cookie = isset($_COOKIE['test-task']) ? true : false;
         
+        $repository = $this->getDoctrine()->getRepository(Programs::class);
+        $programs = $repository->findAll();
+        
+        $id = isset($_COOKIE['test-task']) ? $_COOKIE['test-task'] : 0;
+        
+        foreach ($programs as $key=>$value) {
+            $array = unserialize($programs[$key]->getUsers());
+            if (in_array($id, $array)) {
+                $programs[$key]->link = 'edit';
+            } else {
+                $programs[$key]->link = 'view';
+            }
+        }
+        
         return $this->render('main/index.html.twig', [
-            'cookie' => $cookie
+            'cookie' => $cookie,
+            'programs' => $programs
         ]);
     }
     
@@ -45,8 +63,8 @@ class MainController extends AbstractController
             $user->setName($post['Name']);
             
             $entityManager->persist($user);
-            setcookie('test-task', crypt($post['Name'], $user->getId()).';'.$user->getId());
             $entityManager->flush();
+            setcookie('test-task', $user->getId());
             
             return $this->redirectToRoute('index');
 
@@ -57,19 +75,41 @@ class MainController extends AbstractController
         ]);
     }
         
-    public function create(Request $request)
+    public function create(Request $request, $slug = false, $parent = 0)
     {
         $repository = $this->getDoctrine()->getRepository(Users::class);
         $users = $repository->findAll();
         $choices = [];
         
         foreach($users as $user) {
+            if($_COOKIE['test-task'] === $user->getId()) continue;
             $choices[] = [$user->getName() => $user->getId()];
         }
         
+        $progRepository = $this->getDoctrine()->getRepository(Programs::class);
+        
+        if ($slug) {
+            $prograM = $progRepository->find($slug);
+        }
+        
+        if ($parent) {
+            $program = $progRepository->find($parent);
+        }
+        
+        $level = $parent ? $program->getLevel() + 1 : 0;
+        
+        if (!$level) $level = ($slug) ? $prograM->getLevel() : 0;
+        
+        $title = $slug ? $prograM->getTitle() : null;
+        $parent = $slug ? $prograM->getParentId() : $parent;
+        
         $form = $this->createFormBuilder()
-                     ->add('Title', TextType::class)
-                     ->add('Description', TextareaType::class)
+                     ->add('Title', TextType::class, [
+                        'attr' => ['value' => $slug ? $prograM->getTitle() : null]
+                     ])
+                     ->add('Description', TextareaType::class, [
+                        'data' => $slug ? $prograM->getDescription() : null
+                     ])
                      ->add('Thumbnail', FileType::class, [
                         'label' => 'Thumbnail (JPEG-file < 1MB)'
                      ])
@@ -78,28 +118,50 @@ class MainController extends AbstractController
                         'expanded' => true,
                         'attr' => ['class' => 'form-group form-check'],
                         'choice_attr' => function ($a, $b, $c) {
-                            return ['class' => 'form-check-input'];
+                            return [
+                                'class' => 'form-check-input'
+                            ];
                         },
                         'choices' => $choices,
                         'choice_label' => function ($value, $key, $choiceValue) {
                             return $key;
                         },
                      ])
+                     ->add('parent', HiddenType::class, [
+                        'data' => $parent
+                     ])
+                     ->add('level', HiddenType::class, [
+                        'data' => $level
+                     ])
                      ->add('Create', SubmitType::class)
                      ->getForm();
-                     
+        
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager = $this->getDoctrine()->getManager();
             
-            $programs = new Programs();
+            if ($slug) {
+                $programs = $prograM;
+            } else {
+                $programs = new Programs();
+            }
+            
             $post = $form->getData();
             $programs->setTitle($post['Title']);
             $programs->setDescription($post['Description']);
-            $programs->setUsers(serialize($post['organizers']);
-            $programs->setLevel(0);
-            $programs->setParentId(0);
+            
+            $file = $form['Thumbnail']->getData();
+            $fileName = $this->generateUniqueFileName().'.'.$file->guessExtension();
+            $programs->setImages($fileName);
+            $file->move('images', $fileName);
+            
+            $organizers = $post['organizers'];
+            $organizers[] = $_COOKIE['test-task'];
+            
+            $programs->setUsers(serialize($organizers));
+            $programs->setLevel($level);
+            $programs->setParentId($post['parent']);
             
             $entityManager->persist($programs);
             $entityManager->flush();
@@ -110,6 +172,36 @@ class MainController extends AbstractController
         
         return $this->render('main/create.html.twig', [
             'form' => $form->createView(),
+            'title' => $title,
+            'slug' => isset($slug) ? $slug : null,
+            'parent' => isset($parent) ? $parent : 0,
+            'id' => (isset($slug) && isset($prograM)) ? $prograM->getId() : null,
+            'createChild' => ($level < 2 && $title) ? true : false
         ]);
+    }
+    
+    public function view($slug)
+    {
+        $repository = $this->getDoctrine()->getRepository(Programs::class);
+        $program = $repository->find($slug);
+        
+        $organizers = unserialize($program->getUsers());
+        
+        $names = [];
+        $repository = $this->getDoctrine()->getRepository(Users::class);
+        
+        foreach ($organizers as $organizer) {
+            $names[] = $repository->find($organizer)->getName();
+        }
+        
+        return $this->render('main/view.html.twig', [
+            'program' => $program,
+            'organizers' => $names
+        ]);
+    }
+    
+    private function generateUniqueFileName()
+    {
+        return md5(uniqid());
     }
 }

@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}создать программу обучения{% endblock %}
+{% block title %}{% if title %}редактирование программы "{{ title }}"{% else %}создать программу обучения{% endif %}{% endblock %}
 
 {% block content %}
 
@@ -44,5 +44,8 @@
       </div>
       {{ form_widget(form.Create, { 'attr':{ 'class':'btn btn-primary' }}) }}
     {{ form_end(form) }}
-    
+    {% if createChild %}
+        <a href="{{ path('create_child', { 'parent': id }) }}" class="btn btn-danger">Create child program</a>
+    {% endif %}
+
 {% endblock %}

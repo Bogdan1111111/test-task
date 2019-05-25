@@ -7,3 +7,12 @@ new:
 create:
     path: /create
     controller: App\Controller\MainController::create
+view:
+    path: /view/{slug}
+    controller: App\Controller\MainController::view
+edit:
+    path: /edit/{slug}
+    controller: App\Controller\MainController::create
+create_child:
+    path: /create/{parent}
+    controller: App\Controller\MainController::create
