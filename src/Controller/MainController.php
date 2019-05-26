@@ -79,12 +79,6 @@ class MainController extends AbstractController
     {
         $repository = $this->getDoctrine()->getRepository(Users::class);
         $users = $repository->findAll();
-        $choices = [];
-        
-        foreach($users as $user) {
-            if($_COOKIE['test-task'] === $user->getId()) continue;
-            $choices[] = [$user->getName() => $user->getId()];
-        }
         
         $progRepository = $this->getDoctrine()->getRepository(Programs::class);
         
@@ -94,6 +88,26 @@ class MainController extends AbstractController
         
         if ($parent) {
             $program = $progRepository->find($parent);
+        }
+        
+        $choices = [];
+        $creators = [];
+        
+        foreach($users as $user) {
+            if($_COOKIE['test-task'] === $user->getId()) continue;
+            if ($slug) {
+                if (in_array($user->getId(), unserialize($prograM->getUsers()))) {
+                    $creators[] = [
+                        'id' => $user->getId(),
+                        'name' => $user->getName()
+                    ];
+                    continue;
+                }
+            }
+            if ($parent) {
+                if (in_array($user->getId(), unserialize($program->getUsers()))) continue;
+            }
+            $choices[] = [$user->getName() => $user->getId()];
         }
         
         $level = $parent ? $program->getLevel() + 1 : 0;
@@ -116,12 +130,6 @@ class MainController extends AbstractController
                      ->add('organizers', ChoiceType::class, [
                         'multiple' => true,
                         'expanded' => true,
-                        'attr' => ['class' => 'form-group form-check'],
-                        'choice_attr' => function ($a, $b, $c) {
-                            return [
-                                'class' => 'form-check-input'
-                            ];
-                        },
                         'choices' => $choices,
                         'choice_label' => function ($value, $key, $choiceValue) {
                             return $key;
@@ -156,7 +164,11 @@ class MainController extends AbstractController
             $programs->setImages($fileName);
             $file->move('images', $fileName);
             
-            $organizers = $post['organizers'];
+            $response = $request->request->all();
+            
+            $organizers1 = $response['creators'];
+            $organizers2 = $post['organizers'];
+            $organizers = array_merge($organizers1, $organizers2);
             $organizers[] = $_COOKIE['test-task'];
             
             $programs->setUsers(serialize($organizers));
@@ -167,7 +179,6 @@ class MainController extends AbstractController
             $entityManager->flush();
             
             return $this->redirectToRoute('index');
-
         }
         
         return $this->render('main/create.html.twig', [
@@ -176,7 +187,9 @@ class MainController extends AbstractController
             'slug' => isset($slug) ? $slug : null,
             'parent' => isset($parent) ? $parent : 0,
             'id' => (isset($slug) && isset($prograM)) ? $prograM->getId() : null,
-            'createChild' => ($level < 2 && $title) ? true : false
+            'createChild' => ($level < 2 && $title) ? true : false,
+            'creators' => $creators,
+            'cookie' => $_COOKIE['test-task']
         ]);
     }
     

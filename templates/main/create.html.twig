@@ -7,18 +7,23 @@
     {{ form_start(form) }}
       <div class="form-group">
         {{ form_label(form.Title) }}
-        {{ form_widget(form.Title, { 'attr':{ 'class':'form-control' }}) }}
+        {{ form_widget(form.Title) }}
       </div>
       <div class="form-group">
         {{ form_label(form.Description) }}
-        {{ form_widget(form.Description, { 'attr':{ 'class':'form-control', 'rows':'5' }}) }}
+        {{ form_widget(form.Description, { 'attr':{ 'rows':'5' }}) }}
       </div>
       <div class="form-group">
         {{ form_label(form.Thumbnail) }}
-        {{ form_widget(form.Thumbnail, { 'attr':{ 'class':'form-control', 'accept':'image/jpeg' }}) }}
+        {{ form_widget(form.Thumbnail, { 'attr':{ 'accept':'image/jpeg' }}) }}
       </div>
       <div class="form-group">
         <h3>Список организаторов</h3>
+        <ul class="list-group">
+        {% for creator in creators %}
+            <li class="list-group-item">{{ creator.name }}<input type="hidden" name="creators[]" value="{{ creator.id }}"/>{% if cookie != creator.id %}<button class="btn btn-danger float-right delete">Delete</button>{% endif %}</li>
+        {% endfor %}
+        </ul>
         <!-- Button trigger modal -->
         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
           Добавить организатора(-ов)
@@ -47,5 +52,18 @@
     {% if createChild %}
         <a href="{{ path('create_child', { 'parent': id }) }}" class="btn btn-danger">Create child program</a>
     {% endif %}
+
+{% endblock %}
+
+{% block javascript %}
+
+{{ parent() }}
+
+<script type="text/javascript">
+	$('.delete').click(function(){
+	   $(this).parent().remove();
+       return false;
+	});
+</script>
 
 {% endblock %}
